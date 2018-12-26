@@ -12,6 +12,7 @@
     </div>
     <p>PS: 两秒钟后，文字自动变化，你也可以通过控制台使用mvvm.name或者mvvm.job改变变量的值</p>
     <script>
+        
         // 没有改变
         class Subject {
             constructor() {
@@ -187,41 +188,44 @@
                 });
                 
             }
-            
+    
             dataIntercept() {
                 /**
                  * 代码跟数据劫持相比，多了创建主题、取值的时候订阅主题和设置值的时候发出通知
                  */
-                if (!this.$data || typeof this.$data !== "object") {
-                    console.log(`参数必须为对象`);
-                    return false;
-                }
-                Object.keys(this.$data).map((key, index) => {
-                    let initData = this.$data[key];
-                    // 为每个key创建一个主题
-                    let subject = new Subject();
-                    Object.defineProperty(this.$data, key, {
-                        enumerable: true,
-                        configurable: true,
-                        set: (val) => {
-                            // console.log(`修改属性${key}值为${val}`);
-                            initData = val;
-                            subject.notify();  // 如果key的值发生了变化，通知所有的观察者
-                        },
-                        get: () => {
-                            if (this.currentObserve) {
-                                // 如果this.currentObserve存在，就在获取属性的时候
-                                // 订阅当前key的变化
-                                this.currentObserve.subscribeTo(subject);
+        
+                let fn = (data) => {
+                    if (!data || typeof data !== "object") {
+                        return false;
+                    }
+                    Object.keys(data).map((key, index) => {
+                        let initData = data[key];
+                        // 为每个key创建一个主题
+                        let subject = new Subject();
+                        Object.defineProperty(data, key, {
+                            enumerable: true,
+                            configurable: true,
+                            set: (val) => {
+                                // console.log(`修改属性${key}值为${val}`);
+                                initData = val;
+                                subject.notify();  // 如果key的值发生了变化，通知所有的观察者
+                            },
+                            get: () => {
+                                if (this.currentObserve) {
+                                    // 如果this.currentObserve存在，就在获取属性的时候
+                                    // 订阅当前key的变化
+                                    this.currentObserve.subscribeTo(subject);
+                                }
+                                // console.log(`获取属性${key}的值${initData}`);
+                                return initData;
                             }
-                            // console.log(`获取属性${key}的值${initData}`);
-                            return initData;
+                        });
+                        if (typeof initData === "object") {
+                            dataIntercept(initData);
                         }
                     });
-                    if (typeof initData === "object") {
-                        dataIntercept(initData);
-                    }
-                });
+                };
+                fn(this.$data);
             }
             
         }
@@ -230,7 +234,7 @@
             el: "#app",
             data: {
                 name: "dhx",
-                job: "jser"
+                job: "jser",
             },
             methods: {
                 modifyUser() {
